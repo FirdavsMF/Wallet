@@ -2,12 +2,13 @@ package wallet
 
 import (
 	"errors"
-
+	"log"
+	"os"
+	"strconv"
 	"github.com/FirdavsMF/Wallet/pkg/types"
 	"github.com/google/uuid"
 	
 )
-
 //ErrPhoneRegistered - телефон уже регитрирован
 var ErrPhoneRegistered = errors.New("phone already registred")
 
@@ -22,6 +23,8 @@ var ErrNotEnoughtBalance = errors.New("account not enough balance")
 
 //ErrPaymentNotFound - платеж не найден
 var ErrPaymentNotFound = errors.New("payment not found")
+// ErrFileNotFound - файл не найден
+var ErrFileNotFound = errors.New("file not fount")
 
 // Service представляет информацию о пользователе.
 type Service struct {
@@ -149,6 +152,38 @@ func (s *Service) Reject(paymentID string) error {
 
 	pay.Status = types.PaymentStatusFail
 	acc.Balance += pay.Amount
+
+	return nil
+}
+// ExportToFile экспартирует данные аккаунтов в файл
+func (s *Service) ExportToFile(path string) error {
+	file, err := os.Create(path)
+	if err != nil {
+		log.Print(err)
+		return ErrFileNotFound
+	}
+	defer func() {
+		if cerr := file.Close(); cerr != nil {
+			log.Print(cerr)
+		}
+	}()
+
+	str := ""
+
+	for _, acc := range s.accounts {
+		ID := strconv.Itoa(int(acc.ID)) + ";"
+		phone := string(acc.Phone) + ";"
+		balance := strconv.Itoa(int(acc.Balance))
+
+		str += ID
+		str += phone
+		str += balance + "|"
+	}
+	_, err = file.Write([]byte(str))
+	if err != nil {
+		log.Print(err)
+		return ErrFileNotFound
+	}
 
 	return nil
 }
